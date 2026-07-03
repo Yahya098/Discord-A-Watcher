@@ -7,14 +7,30 @@ import './App.css'
 // We wrap it in a try-catch so it still works in a regular browser during dev
 let discordSdk = null;
 try {
-  // If we had a Client ID we could initialize it properly, 
-  // but for a simple iframe activity, we just need to ensure the UI fits.
-  // discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
+  discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
 } catch (e) {
   console.log("Not running in Discord environment or missing Client ID");
 }
 
 function App() {
+  const [isDiscordReady, setIsDiscordReady] = useState(false);
+
+  useEffect(() => {
+    async function setupDiscord() {
+      if (discordSdk) {
+        try {
+          await discordSdk.ready();
+          setIsDiscordReady(true);
+        } catch (e) {
+          console.error("Discord SDK failed to initialize", e);
+          setIsDiscordReady(true); // fallback so UI still loads
+        }
+      } else {
+        setIsDiscordReady(true);
+      }
+    }
+    setupDiscord();
+  }, []);
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [results, setResults] = useState([])
@@ -56,6 +72,14 @@ function App() {
     } finally {
       setIsSearching(false)
     }
+  }
+
+  if (!isDiscordReady) {
+    return (
+      <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <h2 style={{ color: '#b9bbbe' }}>Connecting to Discord...</h2>
+      </div>
+    );
   }
 
   return (
